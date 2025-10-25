@@ -1,0 +1,160 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(CAJERO)
+  createdAt DateTime @default(now())
+  sales     Sale[]
+}
+
+enum Role {
+  ADMIN
+  CAJERO
+  VENDEDOR
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  products Product[]
+}
+
+model Product {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique
+  description String
+  price       Float
+  cost        Float?
+  color       String?
+  categoryId  Int?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  variants    Variant[]
+  createdAt   DateTime  @default(now())
+}
+
+model Variant {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  size      String
+  stock     Int     @default(0)
+  barcode   String?
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+enum ClientType {
+  CONSUMIDOR_FINAL
+}
+
+model Client {
+  id        Int      @id @default(autoincrement())
+  name      String
+  dni       String?  @unique
+  phone     String?
+  email     String?
+  balance   Float    @default(0)
+  type      ClientType @default(CONSUMIDOR_FINAL)
+  createdAt DateTime @default(now())
+  sales     Sale[]
+}
+
+model Sale {
+  id          Int         @id @default(autoincrement())
+  number      String      @unique
+  clientId    Int?
+  client      Client?     @relation(fields: [clientId], references: [id])
+  userId      Int
+  user        User        @relation(fields: [userId], references: [id])
+  subtotal    Float
+  discount    Float
+  surcharge   Float
+  total       Float
+  paymentType PaymentType
+  status      SaleStatus  @default(COMPLETED)
+  createdAt   DateTime    @default(now())
+  items       SaleItem[]
+  payments    Payment[]
+  isExchange  Boolean?    @default(false)
+}
+
+model SaleItem {
+  id          Int     @id @default(autoincrement())
+  saleId      Int
+  productId   Int
+  variantId   Int?
+  code        String
+  description String
+  size        String?
+  price       Float
+  qty         Int
+  subtotal    Float
+  isReturn    Boolean? @default(false)
+  sale        Sale    @relation(fields: [saleId], references: [id])
+}
+
+enum PaymentType {
+  EFECTIVO
+  TARJETA
+  TRANSFERENCIA
+  MIXTO
+  CCA // Cuenta Corriente
+}
+
+enum SaleStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+model StockMovement {
+  id        Int          @id @default(autoincrement())
+  variantId Int
+  type      MovementType
+  qty       Int
+  reason    String?
+  userId    Int?
+  createdAt DateTime     @default(now())
+}
+
+enum MovementType {
+  IN
+  OUT
+  ADJUST
+  RETURN
+}
+
+model Payment {
+  id        Int         @id @default(autoincrement())
+  saleId    Int
+  sale      Sale        @relation(fields: [saleId], references: [id])
+  type      PaymentType
+  amount    Float
+  createdAt DateTime    @default(now())
+}
+
+model Settings {
+  id          Int      @id @default(autoincrement())
+  businessName String
+  address      String?
+  phone        String?
+  cuit         String?
+  ivaCondition String?     // Ej: Responsable Inscripto / Monotributista
+  headerText   String?     // Texto opcional en la parte superior del ticket
+  footerText   String?     // Texto opcional en la parte inferior del ticket
+  logoUrl      String?     // URL o base64 de logo
+  qrLink       String?     // Link QR de AFIP u otro
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+
