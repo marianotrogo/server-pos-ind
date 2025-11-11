@@ -1,5 +1,4 @@
-import path from "path";
-import { fileURLToPath } from "url";
+// src/server.js
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -12,22 +11,11 @@ const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// Manejo de errores global
-process.on("uncaughtException", (err) => console.error("❌ Error no capturado:", err));
-process.on("unhandledRejection", (reason) => console.error("⚠️ Promesa no manejada:", reason));
-process.on("SIGINT", async () => {
-  await prisma.$disconnect();
-  console.log("🧹 Prisma desconectado correctamente");
-  process.exit(0);
-});
-
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-
-
-// Rutas
+// Importar rutas
 import productRoutes from "./routes/productRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import clientRoutes from "./routes/clientRoutes.js";
@@ -36,9 +24,7 @@ import settingsRoutes from "./routes/settingsRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 
-
-
-
+// Configurar rutas
 app.use("/api/auth", authRoutes);
 app.use("/api/productos", productRoutes);
 app.use("/api/categorias", categoryRoutes);
@@ -68,12 +54,8 @@ async function ensureDefaultUser() {
   }
 }
 
-// Iniciar servidor
-async function startServer() {
+// Levantar servidor
+app.listen(PORT, async () => {
+  console.log(`🚀 Servidor corriendo en el puerto ${PORT}`);
   await ensureDefaultUser();
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 Servidor en puerto ${PORT}`);
-  });
-}
-
-startServer();
+});

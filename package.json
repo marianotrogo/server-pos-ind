@@ -4,7 +4,6 @@
   "description": "Backend de sistema POS Indum",
   "main": "src/server.js",
   "type": "module",
-  "bin": "src/server.js",
   "author": "Mariano Trogo",
   "license": "ISC",
   "scripts": {
