@@ -2,7 +2,10 @@
 CREATE TYPE "Role" AS ENUM ('ADMIN', 'CAJERO', 'VENDEDOR');
 
 -- CreateEnum
-CREATE TYPE "PaymentType" AS ENUM ('CASH', 'CARD', 'TRANSFER', 'MIXED', 'CCA');
+CREATE TYPE "ClientType" AS ENUM ('CONSUMIDOR_FINAL');
+
+-- CreateEnum
+CREATE TYPE "PaymentType" AS ENUM ('EFECTIVO', 'TARJETA', 'TRANSFERENCIA', 'MIXTO', 'CCA');
 
 -- CreateEnum
 CREATE TYPE "SaleStatus" AS ENUM ('PENDING', 'COMPLETED', 'CANCELLED');
@@ -63,6 +66,7 @@ CREATE TABLE "Client" (
     "phone" TEXT,
     "email" TEXT,
     "balance" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "type" "ClientType" NOT NULL DEFAULT 'CONSUMIDOR_FINAL',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Client_pkey" PRIMARY KEY ("id")
@@ -81,6 +85,7 @@ CREATE TABLE "Sale" (
     "paymentType" "PaymentType" NOT NULL,
     "status" "SaleStatus" NOT NULL DEFAULT 'COMPLETED',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "isExchange" BOOLEAN DEFAULT false,
 
     CONSTRAINT "Sale_pkey" PRIMARY KEY ("id")
 );
@@ -97,6 +102,7 @@ CREATE TABLE "SaleItem" (
     "price" DOUBLE PRECISION NOT NULL,
     "qty" INTEGER NOT NULL,
     "subtotal" DOUBLE PRECISION NOT NULL,
+    "isReturn" BOOLEAN DEFAULT false,
 
     CONSTRAINT "SaleItem_pkey" PRIMARY KEY ("id")
 );
@@ -112,6 +118,35 @@ CREATE TABLE "StockMovement" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "StockMovement_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Payment" (
+    "id" SERIAL NOT NULL,
+    "saleId" INTEGER NOT NULL,
+    "type" "PaymentType" NOT NULL,
+    "amount" DOUBLE PRECISION NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Payment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Settings" (
+    "id" SERIAL NOT NULL,
+    "businessName" TEXT NOT NULL,
+    "address" TEXT,
+    "phone" TEXT,
+    "cuit" TEXT,
+    "ivaCondition" TEXT,
+    "headerText" TEXT,
+    "footerText" TEXT,
+    "logoUrl" TEXT,
+    "qrLink" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Settings_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -143,3 +178,6 @@ ALTER TABLE "Sale" ADD CONSTRAINT "Sale_userId_fkey" FOREIGN KEY ("userId") REFE
 
 -- AddForeignKey
 ALTER TABLE "SaleItem" ADD CONSTRAINT "SaleItem_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "Sale"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Payment" ADD CONSTRAINT "Payment_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "Sale"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

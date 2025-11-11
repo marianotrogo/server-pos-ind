@@ -1,26 +1,33 @@
 {
-  "name": "server",
+  "name": "pos-indum-server",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "start": "nodemon src/server.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "description": "Backend de sistema POS Indum",
+  "main": "src/server.js",
   "type": "module",
+  "bin": "src/server.js",
+  "author": "Mariano Trogo",
+  "license": "ISC",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js"
+  },
   "dependencies": {
     "@prisma/client": "^6.17.1",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
+    "dayjs": "^1.11.18",
     "dotenv": "^17.2.3",
-    "express": "^5.1.0",
+    "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
+    "open": "^10.2.0",
+    "pdf-lib": "^1.17.1",
     "pdfkit": "^0.17.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.10",
     "prisma": "^6.17.1"
   }
+  
 }

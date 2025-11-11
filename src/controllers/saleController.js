@@ -1,4 +1,5 @@
-import { generateTicketPDF } from "../utils/ticketGenerator.js"; // ← ruta ajustala según tu estructura
+import { generateSalesReportPDF } from "../utils/reportGenerator.js";
+import dayjs from 'dayjs'
 import prisma from "../prismaClient.js";
 
 export const createSale = async (req, res) => {
@@ -11,7 +12,7 @@ export const createSale = async (req, res) => {
 
   try {
     const lastSale = await prisma.sale.findFirst({ orderBy: { id: "desc" } });
-    const number = `V-${(lastSale?.id || 0) + 1}`.padStart(5, "0");
+    const number = String((lastSale?.id || 0) + 1).padStart(6, "0");
 
     const sale = await prisma.sale.create({
       data: {
@@ -145,8 +146,14 @@ export const getSaleById = async (req, res) => {
   try {
     const { id } = req.params;
 
+    if (!id) {
+      return res.status(400).json({ message: "Falta el id de la venta" });
+    }
+
+    const saleId = parseInt(id); // ⚠️ Muy importante: Prisma necesita un número, no string
+
     const sale = await prisma.sale.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: saleId },
       include: {
         client: true,
         user: true,
@@ -155,13 +162,17 @@ export const getSaleById = async (req, res) => {
       },
     });
 
-    if (!sale) return res.status(404).json({ message: "Venta no encontrada" });
+    if (!sale) {
+      return res.status(404).json({ message: "Venta no encontrada" });
+    }
+
     res.json(sale);
-  } catch (error) {
-    console.error("Error al obtener venta:", error);
-    res.status(500).json({ message: "Error interno del servidor" });
+  } catch (err) {
+    console.error("Error al obtener venta:", err);
+    res.status(500).json({ message: "Error interno al obtener venta" });
   }
 };
+
 
 //  Actualizar venta (por ejemplo, descuento, recargo o estado)
 export const updateSale = async (req, res) => {
@@ -263,12 +274,50 @@ export const deleteSale = async (req, res) => {
 
 export const getSalesReport = async (req, res) => {
   try {
-    const { from, to, userId, clientId, status } = req.query;
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({ message: "Faltan fechas 'from' o 'to'" });
+    }
+
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const sales = await prisma.sale.findMany({
+      where: {
+        createdAt: {
+          gte: fromDate,
+          lte: toDate,
+        },
+      },
+      include: {
+        client: true,
+        user: true,
+        items: true,
+        payments: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json({sales});
+  } catch (err) {
+    console.error("Error al traer ventas:", err);
+    res.status(500).json({ message: "Error interno al traer ventas" });
+  }
+};
+
+
+export const downloadSalesReport = async (req, res) => {
+  try {
+    let { from, to, userId, clientId, status } = req.query;
+
+    // 🔹 Corte del día por defecto
+    if (!from) from = dayjs().startOf('day').toISOString();
+    if (!to) to = dayjs().endOf('day').toISOString();
 
     const where = {};
-    if (from || to) where.createdAt = {};
-    if (from) where.createdAt.gte = new Date(from);
-    if (to) where.createdAt.lte = new Date(to);
+    if (from) where.createdAt = { ...where.createdAt, gte: new Date(from) };
+    if (to) where.createdAt = { ...where.createdAt, lte: new Date(to) };
     if (userId) where.userId = parseInt(userId);
     if (clientId) where.clientId = parseInt(clientId);
     if (status) where.status = status;
@@ -279,13 +328,26 @@ export const getSalesReport = async (req, res) => {
       orderBy: { createdAt: "desc" },
     });
 
-    // Opcional: resumen de totales
     const totalSales = sales.reduce((sum, s) => sum + s.total, 0);
-    const totalItems = sales.reduce((sum, s) => sum + s.items.length, 0);
+    const totalItems = sales.reduce((sum, s) => sum + s.items.reduce((a, i) => a + i.qty, 0), 0);
 
-    res.json({ sales, totalSales, totalItems });
+    const totalByPayment = {};
+    sales.forEach(s => {
+      s.payments.forEach(p => {
+        if (!totalByPayment[p.type]) totalByPayment[p.type] = 0;
+        totalByPayment[p.type] += p.amount;
+      });
+    });
+
+    const summary = { totalSales, totalItems, totalByPayment };
+    const pdfBlob = generateSalesReportPDF(sales, summary, { title: "Reporte de Ventas", from, to });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="reporte_ventas_${dayjs().format("YYYYMMDD_HHmm")}.pdf"`);
+    res.send(pdfBlob);
   } catch (error) {
-    console.error("Error al generar reporte:", error);
-    res.status(500).json({ message: "Error interno del servidor" });
+    console.error("Error generando reporte PDF:", error);
+    res.status(500).json({ message: "Error generando reporte PDF" });
   }
 };
+

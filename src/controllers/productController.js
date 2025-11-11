@@ -125,26 +125,30 @@ export const deleteProduct = async (req, res) => {
 
 
 // ✅ Buscar productos por código o descripción
+// ✅ Buscar productos por código o descripción (compatible con SQLite)
 export const searchProducts = async (req, res) => {
   try {
     const { query } = req.query;
 
     if (!query || query.trim() === "") {
-      return res.json([]); // si no hay query, devolvemos vacío
+      return res.json([]); // si no hay texto, devolvemos vacío
     }
 
-    const products = await prisma.product.findMany({
-      where: {
-        OR: [
-          { code: { contains: query, mode: "insensitive" } },
-          { description: { contains: query, mode: "insensitive" } },
-        ],
-      },
+    const searchLower = query.toLowerCase();
+
+    // 🔹 Buscar todos los productos con sus variantes
+    const allProducts = await prisma.product.findMany({
       include: { variants: true },
-      take: 30, // limitar resultados
     });
 
-    res.json(products);
+    // 🔹 Filtrar manualmente (ya que SQLite no soporta `mode: "insensitive"`)
+    const filtered = allProducts.filter((p) =>
+      p.code.toLowerCase().includes(searchLower) ||
+      p.description.toLowerCase().includes(searchLower)
+    );
+
+    // 🔹 Limitar a 30 resultados como antes
+    res.json(filtered.slice(0, 30));
   } catch (error) {
     console.error("Error en búsqueda de productos:", error);
     res.status(500).json({ message: "Error al buscar productos" });
