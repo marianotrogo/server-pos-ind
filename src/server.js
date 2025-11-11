@@ -42,15 +42,6 @@ app.use("/api/sales", saleRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/admin", adminRoutes);
 
-// Servir frontend si está presente
-if (process.env.NODE_ENV === "production") {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  const clientPath = path.resolve(__dirname, "../../client/dist");
-  app.use(express.static(clientPath));
-  app.get("*", (req, res) => res.sendFile(path.join(clientPath, "index.html")));
-}
-
 // Crear admin por defecto si no existe
 async function ensureDefaultUser() {
   try {
