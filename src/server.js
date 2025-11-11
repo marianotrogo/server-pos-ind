@@ -25,6 +25,8 @@ process.on("SIGINT", async () => {
 app.use(cors());
 app.use(express.json());
 
+
+
 // Rutas
 import productRoutes from "./routes/productRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
@@ -34,6 +36,9 @@ import settingsRoutes from "./routes/settingsRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 
+
+
+
 app.use("/api/auth", authRoutes);
 app.use("/api/productos", productRoutes);
 app.use("/api/categorias", categoryRoutes);
@@ -41,6 +46,8 @@ app.use("/api/clientes", clientRoutes);
 app.use("/api/sales", saleRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/admin", adminRoutes);
+
+
 
 // Crear admin por defecto si no existe
 async function ensureDefaultUser() {
